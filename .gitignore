@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 环境变量
+.env
+.env.local
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 数据
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Chroma 持久化目录
+chroma_db/
+
+# 日志
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 临时文件
+tmp/
+temp/
+
+# 爬虫产出（暂存）
+article_texts/
+crawled_raw/
