@@ -1,9 +1,12 @@
 """
-中传计算机与网络空间安全学院官网通知公告爬虫
-站点: https://ccs.cuc.edu.cn/tzgg/list.htm
+中传校教务处通知公告爬虫
+站点: https://jwc.cuc.edu.cn/6364/list.htm
+
+跟 cuc_cs_notice 用同一套学校 CMS（苏迪 webplus），代码结构一致，
+只是栏目从学院通知换成校教务处通知。
 
 使用：
-  python -m scripts.run_crawler cuc_cs_notice --max 3
+  python -m scripts.run_crawler cuc_jwc_notice --max 3
 """
 from __future__ import annotations
 
@@ -30,12 +33,12 @@ UA = (
 DETAIL_URL_PATTERN = re.compile(r"/\d{4}/\d{4}/c\w+/page\.htm$")
 
 
-class CucCsNoticeSpider(BaseSpider):
-    """学院官网通知公告"""
+class CucJwcNoticeSpider(BaseSpider):
+    """中传教务处通知公告"""
 
-    source = "cuc_cs_notice"
+    source = "cuc_jwc_notice"
 
-    LIST_URL = "https://ccs.cuc.edu.cn/tzgg/list.htm"
+    LIST_URL = "https://jwc.cuc.edu.cn/6364/list.htm"
 
     def __init__(self, max_pages: int = 3, sleep: float = 1.0) -> None:
         super().__init__()
@@ -64,12 +67,14 @@ class CucCsNoticeSpider(BaseSpider):
             seen_urls.add(url)
 
             title = a.get_text(separator=" ", strip=True)
+            # 清理标题前缀的日期(如 "2026-03-11 通知标题")
             title = re.sub(
                 r"^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s*", "", title
             ).strip()
             if not title or len(title) < 4:
                 continue
 
+            # 在父级容器里找日期
             publish_time = None
             parent = a.find_parent(["li", "tr", "div"])
             if parent:
@@ -117,12 +122,11 @@ class CucCsNoticeSpider(BaseSpider):
 
     async def crawl(self) -> AsyncIterator[ParsedArticle]:
         for page in range(1, self.max_pages + 1):
+            # 学校 CMS 翻页:list.htm / list2.htm / list3.htm
             if page == 1:
                 list_url = self.LIST_URL
             else:
-                list_url = self.LIST_URL.replace(
-                    "list.htm", f"list{page}.htm"
-                )
+                list_url = self.LIST_URL.replace("list.htm", f"list{page}.htm")
 
             try:
                 r = self.session.get(list_url, timeout=15)

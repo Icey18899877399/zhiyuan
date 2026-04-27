@@ -43,6 +43,16 @@ async def _job_cuc_cs_notice() -> None:
         logger.exception(f"[定时任务] cuc_cs_notice 失败: {e}")
 
 
+async def _job_cuc_jwc_notice() -> None:
+    from app.crawler.spiders.cuc_jwc_notice import CucJwcNoticeSpider
+
+    logger.info("[定时任务] cuc_jwc_notice 开始")
+    try:
+        await CucJwcNoticeSpider(max_pages=2).run()
+    except Exception as e:
+        logger.exception(f"[定时任务] cuc_jwc_notice 失败: {e}")
+
+
 def setup_jobs() -> None:
     """注册所有定时任务"""
     sch = get_scheduler()
@@ -59,8 +69,16 @@ def setup_jobs() -> None:
         id="cuc_cs_notice",
         replace_existing=True,
     )
+    sch.add_job(
+        _job_cuc_jwc_notice,
+        trigger=CronTrigger(hour="*/4"),  # 每 4 小时
+        id="cuc_jwc_notice",
+        replace_existing=True,
+    )
 
-    logger.info("已注册定时任务: wechat_mp(每6h), cuc_cs_notice(每3h)")
+    logger.info(
+        "已注册定时任务: wechat_mp(每6h), cuc_cs_notice(每3h), cuc_jwc_notice(每4h)"
+    )
 
 
 def start() -> None:
