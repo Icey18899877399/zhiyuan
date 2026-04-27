@@ -25,6 +25,7 @@ config.set_main_option("sqlalchemy.url", settings.database_url_sync)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name, encoding="utf-8")
+    
 
 target_metadata = Base.metadata
 
