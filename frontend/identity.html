@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>身份设置 - 计算机学院 Agent 平台</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // 防止深色模式闪烁的立即执行脚本
+    (function() {
+      const isDark = localStorage.getItem('darkMode') === 'true';
+      if (isDark) {
+        document.documentElement.classList.add('dark-chat');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <h1>计网-智源 Agent</h1>
+      </div>
+
+      <nav class="menu">
+        <a href="rag.html">RAG 知识库展示</a>
+        <a href="identity.html" class="active">身份设置</a>
+        <a href="daily.html">每日数据</a>
+        <a href="index.html">对话</a>
+      </nav>
+
+      <div class="color-strip"></div>
+    </aside>
+
+    <main class="main">
+      <h2 class="title"><span class="dot"></span>身份设置</h2>
+      <div class="card">
+        <div class="form">
+          <div class="row">
+            <label>学院</label>
+            <select id="college">
+              <option>计算机学院</option>
+              <option>人工智能学院</option>
+              <option>数据科学学院</option>
+            </select>
+          </div>
+          <div class="row">
+            <label>年级</label>
+            <select id="grade">
+              <option>2022 级</option>
+              <option>2023 级</option>
+              <option>2024 级</option>
+              <option>2025 级</option>
+            </select>
+          </div>
+          <div class="row">
+            <label>身份角色</label>
+            <select id="role">
+              <option>本科生</option>
+              <option>研究生</option>
+              <option>辅导员</option>
+              <option>教师</option>
+            </select>
+          </div>
+          <div class="row">
+            <label>标签补充</label>
+            <input id="tags" placeholder="如：转专业、考研、学生干部" />
+          </div>
+          <button class="save" id="saveProfile">保存身份标签</button>
+          <div id="saveInfo" class="subtext"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="common.js"></script>
+  <script src="identity.js"></script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>每日数据 - 计算机学院 Agent 平台</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // 防止深色模式闪烁的立即执行脚本
+    (function() {
+      const isDark = localStorage.getItem('darkMode') === 'true';
+      if (isDark) {
+        document.documentElement.classList.add('dark-chat');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <h1>计网-智源 Agent</h1>
+      </div>
+
+      <nav class="menu">
+        <a href="rag.html">RAG 知识库展示</a>
+        <a href="identity.html">身份设置</a>
+        <a href="daily.html" class="active">每日数据</a>
+        <a href="index.html">对话</a>
+      </nav>
+
+      <div class="color-strip"></div>
+    </aside>
+
+    <main class="main">
+      <h2 class="title"><span class="dot"></span>每日数据</h2>
+      <div class="stats">
+        <div class="toolbar">
+          <label>选择日期：</label>
+          <input id="datePicker" type="date" />
+          <button class="save" id="loadData">查看请求次数</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>请求次数</th>
+            </tr>
+          </thead>
+          <tbody id="dailyTable"></tbody>
+        </table>
+
+        <div class="logs">
+          <strong>知识库更新日志</strong><br />
+          - 2026-03-21：新增《本科培养方案（2026 版）》至学业库。<br />
+          - 2026-03-20：活动库增加"春季双选会"日程。<br />
+          - 2026-03-19：党团库补充"组织生活会模板"。<br />
+          - 2026-03-18：就业库更新"实习基地名单"。<br />
+          - 2026-03-18：行政库新增"请假审批流程图"。<br />
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="common.js"></script>
+  <script src="daily.js"></script>
+</body>
+</html>

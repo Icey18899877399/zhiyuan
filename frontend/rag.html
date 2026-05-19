@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG 知识库展示 - 计算机学院 Agent 平台</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // 防止深色模式闪烁的立即执行脚本
+    (function() {
+      const isDark = localStorage.getItem('darkMode') === 'true';
+      if (isDark) {
+        document.documentElement.classList.add('dark-chat');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <h1>计网-智源 Agent</h1>
+      </div>
+
+      <nav class="menu">
+        <a href="rag.html" class="active">RAG 知识库展示</a>
+        <a href="identity.html">身份设置</a>
+        <a href="daily.html">每日数据</a>
+        <a href="index.html">对话</a>
+      </nav>
+
+      <div class="color-strip"></div>
+    </aside>
+
+    <main class="main">
+      <h2 class="title"><span class="dot"></span>RAG 知识库展示</h2>
+      <div class="kb-grid" id="kbGrid"></div>
+      <div class="doc-list" id="docList"></div>
+    </main>
+  </div>
+  <script src="common.js"></script>
+  <script src="rag.js"></script>
+</body>
+</html>

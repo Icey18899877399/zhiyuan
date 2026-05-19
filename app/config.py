@@ -29,6 +29,15 @@ class Settings(BaseSettings):
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
 
+    # RAG
+    chat_top_k: int = 5
+
+    # CORS：逗号分隔；"*" 表示允许全部
+    cors_origins: str = "*"
+
+    # 前端静态目录（FastAPI 单端口托管）；为空则不挂载
+    frontend_dir: str = "frontend"
+
     # 微信
     wechat_appid: str = ""
     wechat_secret: str = ""
@@ -36,6 +45,13 @@ class Settings(BaseSettings):
     # 爬虫
     wechat_mp_cookie: str = ""
     wechat_mp_token: str = ""
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        raw = (self.cors_origins or "").strip()
+        if not raw or raw == "*":
+            return ["*"]
+        return [o.strip() for o in raw.split(",") if o.strip()]
 
 
 @lru_cache

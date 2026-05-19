@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>计网-智源 Agent 平台</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // 防止深色模式闪烁的立即执行脚本
+    (function() {
+      const isDark = localStorage.getItem('darkMode') === 'true';
+      if (isDark) {
+        document.documentElement.classList.add('dark-chat');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <h1>计网-智源 Agent</h1>
+      </div>
+
+      <nav class="menu">
+        <a href="rag.html">RAG 知识库展示</a>
+        <a href="identity.html">身份设置</a>
+        <a href="daily.html">每日数据</a>
+        <a href="index.html" class="active">对话</a>
+      </nav>
+
+      <div class="color-strip"></div>
+    </aside>
+
+    <main class="main">
+      <section class="chat-shell">
+        <div class="chat-header">
+          <div class="logo-wrap">
+            <div class="ai-logo"></div>
+            <div>
+              <h2 class="title no-margin">对话中心 <span class="dot"></span></h2>
+              <div class="subtext">多 Agent 协同问答入口</div>
+            </div>
+          </div>
+          <button id="darkToggle" class="switch-dark">切换深色模式</button>
+        </div>
+
+        <div class="card">
+          <div class="agent-tabs" id="agentTabs"></div>
+        </div>
+
+        <div id="chatBoard" class="chat-board">
+          <div class="msg bot">你好，我是学业 Agent，你可以问我课程安排、学分、培养方案等问题。</div>
+        </div>
+
+        <div class="card">
+          <div class="composer">
+            <input id="chatInput" placeholder="你想了解哪些课程安排或学业政策？" />
+            <button id="sendBtn">发送</button>
+          </div>
+          <div id="routeLine" class="route"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="common.js"></script>
+  <script src="chat.js"></script>
+</body>
+</html>
