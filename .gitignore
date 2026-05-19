@@ -49,3 +49,6 @@ temp/
 # 爬虫产出（暂存）
 article_texts/
 crawled_raw/
+
+# 软著申报工作目录（含截图、盖章页等本地资料，不入库）
+software-copyright/
