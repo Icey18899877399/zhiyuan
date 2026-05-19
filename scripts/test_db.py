@@ -10,7 +10,7 @@ Day 1 验收脚本
 """
 import asyncio
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
@@ -42,7 +42,7 @@ async def main() -> None:
             title="Day 1 冒烟测试",
             content=content,
             category="其他",
-            publish_time=datetime.now(timezone.utc),
+            publish_time=datetime.now(UTC),
             content_hash=content_hash,
         )
         session.add(article)

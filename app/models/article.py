@@ -1,9 +1,11 @@
 """文章模型 - 校园通知/活动/讲座等聚合内容"""
 from datetime import datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import BigInteger, DateTime, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.config import settings
 from app.database import Base
 
 
@@ -28,6 +30,11 @@ class Article(Base):
     )
     crawled_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    # M2 向量列：维度由 settings.embedding_dim 决定（默认 1024）
+    # 为空表示该文章尚未生成 embedding（无 key / backfill 未跑到）
+    embedding: Mapped[list[float] | None] = mapped_column(
+        Vector(settings.embedding_dim), nullable=True
     )
 
     __table_args__ = (

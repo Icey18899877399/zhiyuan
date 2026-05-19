@@ -39,27 +39,28 @@
         <div class="toolbar">
           <label>选择日期：</label>
           <input id="datePicker" type="date" />
-          <button class="save" id="loadData">查看请求次数</button>
+          <button class="save" id="loadData">查看</button>
         </div>
 
+        <h3 style="margin-top:1.2rem">当日概览</h3>
+        <div id="dailySummary" class="summary-grid"></div>
+
+        <h3 style="margin-top:1.5rem">分爬虫巡查详情</h3>
         <table>
           <thead>
             <tr>
-              <th>Agent</th>
-              <th>请求次数</th>
+              <th>数据源</th>
+              <th>巡查次数</th>
+              <th>成功 / 失败</th>
+              <th>抓取条目</th>
+              <th>新增入库</th>
             </tr>
           </thead>
           <tbody id="dailyTable"></tbody>
         </table>
 
-        <div class="logs">
-          <strong>知识库更新日志</strong><br />
-          - 2026-03-21：新增《本科培养方案（2026 版）》至学业库。<br />
-          - 2026-03-20：活动库增加"春季双选会"日程。<br />
-          - 2026-03-19：党团库补充"组织生活会模板"。<br />
-          - 2026-03-18：就业库更新"实习基地名单"。<br />
-          - 2026-03-18：行政库新增"请假审批流程图"。<br />
-        </div>
+        <h3 style="margin-top:1.5rem">知识库更新日志（最近 20 次跑批）</h3>
+        <div class="logs" id="crawlLogs"></div>
       </div>
     </main>
   </div>
