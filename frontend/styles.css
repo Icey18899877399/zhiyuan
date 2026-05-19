@@ -1,0 +1,636 @@
+:root {
+  --bg: #f8f4e8;
+  --panel: #fffdf6;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  --red: #cf2f2f;
+  --green: #178f59;
+  --blue: #1f5fae;
+  --accent: var(--blue);
+}
+
+html.dark-chat,
+body.dark-chat {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --line: #2b3240;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --red: #7a7a7a;
+  --green: #9a9a9a;
+  --blue: #b3b3b3;
+  --accent: #9ca3af;
+}
+
+html.dark-chat body::before,
+body.dark-chat::before {
+  background: 
+    linear-gradient(135deg, transparent 0%, transparent 48%, rgba(122, 122, 122, 0.8) 48%, rgba(122, 122, 122, 0.8) 52%, transparent 52%, transparent 100%),
+    linear-gradient(135deg, transparent 0%, transparent 48%, rgba(154, 154, 154, 0.8) 48%, rgba(154, 154, 154, 0.8) 52%, transparent 52%, transparent 100%),
+    linear-gradient(135deg, transparent 0%, transparent 48%, rgba(179, 179, 179, 0.8) 48%, rgba(179, 179, 179, 0.8) 52%, transparent 52%, transparent 100%);
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: -30% -30%, 0% 0%, 30% 30%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  position: relative;
+  overflow: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: 
+    /* 红色斜带：45% 位置（靠左），宽度 40px */
+    linear-gradient(135deg, 
+      transparent 0%,
+      transparent calc(45% - 20px),  /* 线条左边界 */
+      rgba(193, 44, 39, 0.6) calc(45% - 20px),
+      rgba(193, 44, 39, 0.6) calc(45% + 20px),  /* 线条右边界（宽度 40px） */
+      transparent calc(45% + 20px),
+      transparent 100%
+    ),
+    /* 绿色斜带：50% 位置（中间），宽度 40px，与红色间距 10px */
+    linear-gradient(135deg, 
+      transparent 0%,
+      transparent calc(50% - 20px),
+      rgba(36, 81, 33, 0.6) calc(50% - 20px),
+      rgba(36, 81, 33, 0.6) calc(50% + 20px),
+      transparent calc(50% + 20px),
+      transparent 100%
+    ),
+    /* 蓝色斜带：55% 位置（靠右），宽度 40px，与绿色间距 10px */
+    linear-gradient(135deg, 
+      transparent 0%,
+      transparent calc(55% - 20px),
+      rgba(19, 40, 87, 0.6) calc(55% - 20px),
+      rgba(19, 40, 87, 0.6) calc(55% + 20px),
+      transparent calc(55% + 20px),
+      transparent 100%
+    );
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 深色模式同步调整 */
+html.dark-chat body::before,
+body.dark-chat::before {
+  background: 
+    linear-gradient(135deg, 
+      transparent 0%,
+      transparent calc(45% - 20px),
+      rgba(122, 122, 122, 0.6) calc(45% - 20px),
+      rgba(122, 122, 122, 0.6) calc(45% + 20px),
+      transparent calc(45% + 20px),
+      transparent 100%
+    ),
+    linear-gradient(135deg, 
+      transparent 0%,
+      transparent calc(50% - 20px),
+      rgba(154, 154, 154, 0.6) calc(50% - 20px),
+      rgba(154, 154, 154, 0.6) calc(50% + 20px),
+      transparent calc(50% + 20px),
+      transparent 100%
+    ),
+    linear-gradient(135deg, 
+      transparent 0%,
+      transparent calc(55% - 20px),
+      rgba(179, 179, 179, 0.6) calc(55% - 20px),
+      rgba(179, 179, 179, 0.6) calc(55% + 20px),
+      transparent calc(55% + 20px),
+      transparent 100%
+    );
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar {
+  background: linear-gradient(180deg, #fffef8 0%, #f4efe0 100%);
+  border-right: 1px solid var(--line);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+html.dark-chat .sidebar,
+body.dark-chat .sidebar {
+  background: linear-gradient(180deg, #151922 0%, #10141c 100%);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.brand::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--red), var(--green), var(--blue));
+}
+
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: url('计小鸡 (8).png') no-repeat center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.brand h1 {
+  font-size: 15px;
+  margin: 0;
+}
+
+.menu {
+  display: grid;
+  gap: 10px;
+}
+
+.menu a,
+.menu button {
+  width: 100%;
+  display: block;
+  text-align: left;
+  border: 1px solid transparent;
+  background: var(--panel);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: 0.2s ease;
+  font-size: 14px;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.menu a::before,
+.menu button::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: linear-gradient(180deg, var(--red), var(--green), var(--blue));
+  opacity: 0;
+  transition: 0.2s ease;
+}
+
+.menu a:hover::before,
+.menu button:hover::before {
+  opacity: 0;
+}
+
+.menu a:hover,
+.menu button:hover {
+  transform: translateY(-1px);
+}
+
+.menu a.active,
+.menu button.active {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.menu a.active::before,
+.menu button.active::before {
+  opacity: 0;
+}
+
+.color-strip {
+  margin-top: auto;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--red), var(--green), var(--blue));
+}
+
+.main {
+  padding: 24px;
+  overflow: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.page {
+  display: none;
+  animation: fade 0.2s ease;
+}
+
+.page.active {
+  display: block;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+.title {
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.no-margin {
+  margin: 0;
+}
+
+.subtext {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.top-gap {
+  margin-top: 6px;
+}
+
+.doc-title {
+  margin: 8px 0 4px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+}
+
+.chat-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: url('计小鸡 (8).png') no-repeat center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  border: 2px solid color-mix(in srgb, var(--blue) 30%, var(--line));
+}
+
+.switch-dark {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.chat-board {
+  min-height: 300px;
+  max-height: 500px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) var(--panel);
+}
+
+.chat-board::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-board::-webkit-scrollbar-track {
+  background: var(--panel);
+  border-radius: 4px;
+}
+
+.chat-board::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--red), var(--green), var(--blue));
+  border-radius: 4px;
+}
+
+.chat-board::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--red), var(--green), var(--blue));
+  opacity: 0.8;
+}
+
+.msg {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  max-width: 80%;
+  width: fit-content;
+  line-height: 1.55;
+  box-shadow: var(--shadow);
+  display: block;
+}
+
+.msg.user {
+  margin-left: auto;
+  background: color-mix(in srgb, var(--blue) 16%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--blue) 35%, var(--line));
+  display: block;
+}
+
+.msg.bot {
+  background: color-mix(in srgb, var(--green) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--green) 35%, var(--line));
+  display: block;
+}
+
+.route {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.agent-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.agent-tabs button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.agent-tabs button::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: linear-gradient(180deg, var(--red), var(--green), var(--blue));
+  opacity: 0;
+  transition: 0.2s ease;
+}
+
+.agent-tabs button.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+}
+
+.agent-tabs button.active::before {
+  opacity: 0;
+}
+
+.composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.composer input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  outline: none;
+}
+
+.composer button {
+  border: 0;
+  border-radius: 14px;
+  padding: 0 18px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+
+.kb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.kb-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.kb-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background: linear-gradient(180deg, var(--red), var(--green), var(--blue));
+  opacity: 0;
+  transition: 0.2s ease;
+}
+
+.kb-item:hover::before {
+  opacity: 0;
+}
+
+.doc-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.doc {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: var(--muted);
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.row input,
+.row select {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.save {
+  width: fit-content;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.stats {
+  display: grid;
+  gap: 14px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px;
+  text-align: left;
+  font-size: 14px;
+}
+
+th {
+  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 8%);
+}
+
+.logs {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 980px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
