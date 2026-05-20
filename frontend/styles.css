@@ -634,3 +634,34 @@ th {
     border-bottom: 1px solid var(--line);
   }
 }
+/* ---- daily 页统计区域 ---- */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.6rem;
+  margin: 0.6rem 0;
+}
+.summary-grid .kv {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.summary-grid .kv span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.summary-grid .kv strong {
+  font-size: 1.1rem;
+}
+.logs .log-row {
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: 0.9rem;
+}
+.logs .log-row:last-child {
+  border-bottom: 0;
+}

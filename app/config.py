@@ -32,6 +32,24 @@ class Settings(BaseSettings):
     # RAG
     chat_top_k: int = 5
 
+    # 向量检索（M2）
+    # 1024 维向量；与 zhipuai embedding-3 / openai text-embedding-3-small (dim=1024) 对齐
+    embedding_dim: int = 1024
+    # 调用哪个 provider 算 embedding：zhipu / openai / disabled
+    # disabled 时 retrieval.py 自动降级到关键词检索，便于无 key 环境本地跑
+    embedding_provider: str = "disabled"
+    embedding_model: str = "embedding-3"
+    # 智谱 BigModel API（https://open.bigmodel.cn）
+    zhipu_api_key: str = ""
+    zhipu_base_url: str = "https://open.bigmodel.cn/api/paas/v4"
+    # 时间衰减系数：score = cos_sim * exp(-lambda * age_days)
+    # 0.05 ≈ 14 天半衰期；0.10 ≈ 7 天半衰期
+    time_decay_lambda: float = 0.05
+
+    # 调度器（M1）
+    # 关闭后 uvicorn 启动不会触发自动爬取，便于本地开发
+    scheduler_enabled: bool = True
+
     # CORS：逗号分隔；"*" 表示允许全部
     cors_origins: str = "*"
 

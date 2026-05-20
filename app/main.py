@@ -19,14 +19,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from loguru import logger
 
-from app.api import articles, chat
+from app import scheduler as zhiyuan_scheduler
+from app.api import articles, chat, stats
 from app.config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"🚀 {settings.app_name} 启动 (env={settings.app_env})")
+    if settings.scheduler_enabled:
+        zhiyuan_scheduler.start()
+    else:
+        logger.info("调度器未启用 (SCHEDULER_ENABLED=false)，跳过定时爬取")
     yield
+    if settings.scheduler_enabled:
+        zhiyuan_scheduler.shutdown()
     logger.info("🛑 应用关闭")
 
 
@@ -49,6 +56,7 @@ app.add_middleware(
 # 注册 API 路由
 app.include_router(articles.router)
 app.include_router(chat.router)
+app.include_router(stats.router)
 
 
 @app.get("/api/health", tags=["system"])

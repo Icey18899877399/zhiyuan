@@ -1,6 +1,8 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector 官方镜像，等价于 postgres:16 + 预装 pgvector 扩展
+    # 切换后无需改任何应用代码，只需在 migration 里 CREATE EXTENSION vector
+    image: pgvector/pgvector:pg16
     container_name: zhiyuan-postgres
     restart: unless-stopped
     environment:

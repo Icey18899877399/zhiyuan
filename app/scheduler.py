@@ -1,17 +1,24 @@
 """
 APScheduler 定时调度
-开发模式可独立运行：python -m app.scheduler
-后期接到 FastAPI lifespan 里随服务一起启动。
+
+设计目标（M1 "动态"两个字坐实）：
+- 每 30 分钟轮一次三个数据源
+- 各 source 错开起始时间，避免同一时刻并发把数据库锁住
+- FastAPI 应用启动时自动拉起（lifespan）；进程退出时优雅关闭
+- 开发模式可独立运行：python -m app.scheduler
 """
 from __future__ import annotations
 
 import asyncio
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from loguru import logger
 
 _scheduler: AsyncIOScheduler | None = None
+
+# 每个 spider 多久跑一次（分钟）
+SPIDER_INTERVAL_MINUTES = 30
 
 
 def get_scheduler() -> AsyncIOScheduler:
@@ -22,16 +29,6 @@ def get_scheduler() -> AsyncIOScheduler:
 
 
 # ---- 任务包装函数 ----
-
-async def _job_wechat_mp() -> None:
-    from app.crawler.spiders.wechat_mp import WechatMpSpider
-
-    logger.info("[定时任务] wechat_mp 开始")
-    try:
-        await WechatMpSpider(max_articles=20).run()
-    except Exception as e:
-        logger.exception(f"[定时任务] wechat_mp 失败: {e}")
-
 
 async def _job_cuc_cs_notice() -> None:
     from app.crawler.spiders.cuc_cs_notice import CucCsNoticeSpider
@@ -53,31 +50,49 @@ async def _job_cuc_jwc_notice() -> None:
         logger.exception(f"[定时任务] cuc_jwc_notice 失败: {e}")
 
 
+async def _job_cuc_career() -> None:
+    from app.crawler.spiders.cuc_career import CucCareerSpider
+
+    logger.info("[定时任务] cuc_career 开始")
+    try:
+        await CucCareerSpider(max_pages=2).run()
+    except Exception as e:
+        logger.exception(f"[定时任务] cuc_career 失败: {e}")
+
+
 def setup_jobs() -> None:
     """注册所有定时任务"""
     sch = get_scheduler()
 
+    # 每 30 分钟一次；起始偏移让三个 spider 错峰
     sch.add_job(
-        _job_wechat_mp,
-        trigger=CronTrigger(hour="*/6"),  # 每 6 小时
-        id="wechat_mp",
+        _job_cuc_jwc_notice,
+        trigger=IntervalTrigger(minutes=SPIDER_INTERVAL_MINUTES),
+        id="cuc_jwc_notice",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
     sch.add_job(
         _job_cuc_cs_notice,
-        trigger=CronTrigger(hour="*/3"),  # 每 3 小时
+        trigger=IntervalTrigger(minutes=SPIDER_INTERVAL_MINUTES),
         id="cuc_cs_notice",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
     sch.add_job(
-        _job_cuc_jwc_notice,
-        trigger=CronTrigger(hour="*/4"),  # 每 4 小时
-        id="cuc_jwc_notice",
+        _job_cuc_career,
+        trigger=IntervalTrigger(minutes=SPIDER_INTERVAL_MINUTES),
+        id="cuc_career",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
 
     logger.info(
-        "已注册定时任务: wechat_mp(每6h), cuc_cs_notice(每3h), cuc_jwc_notice(每4h)"
+        f"已注册定时任务: cuc_jwc_notice / cuc_cs_notice / cuc_career "
+        f"(每 {SPIDER_INTERVAL_MINUTES} 分钟一次)"
     )
 
 
