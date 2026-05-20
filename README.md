@@ -135,6 +135,21 @@ zhiyuan/
 └── .env.example
 ```
 
+## 多人协作：数据库同步
+
+每个开发者本地都是各自的 Docker PG 容器，**数据不会自动共享**。需要让所有人看到一致的数据时（演示、对账、测试），用 `scripts/db_sync.py` 走"导出 → 微信发文件 → 导入"流程：
+
+```bash
+# 你这边导出（数据多的那台机器）
+python -m scripts.db_sync dump
+# → 输出 dumps/zhiyuan_20260520_093015.sql，发给同学
+
+# 同学拿到文件后导入（先确保他本地 docker compose up -d 起来了）
+python -m scripts.db_sync restore dumps/zhiyuan_20260520_093015.sql
+```
+
+`dumps/` 已在 `.gitignore`，SQL 不会被误提交到仓库；体量一般几百 KB 到几 MB，微信群直接发即可。如果未来想 7×24 共享数据，路线是迁到云主机 / 学校实验室服务器跑同一份 Postgres，所有人 `.env` 指向同一个连接串。
+
 ## 常用命令
 
 | 操作 | 命令 |
@@ -147,6 +162,8 @@ zhiyuan/
 | 启服务 | `uvicorn app.main:app --reload` |
 | 手动爬一次 | `python -m scripts.run_crawler cuc_jwc_notice --max 5` |
 | 回填 embedding | `python -m scripts.backfill_embeddings --batch 32` |
+| 导出数据库 | `python -m scripts.db_sync dump` |
+| 导入数据库 | `python -m scripts.db_sync restore dumps/<file>.sql` |
 | 跑测试 | `pytest tests/` |
 | 静态检查 | `ruff check app scripts tests` |
 
