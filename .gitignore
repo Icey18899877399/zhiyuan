@@ -32,6 +32,9 @@ data/
 *.sqlite
 *.sqlite3
 
+# 数据库导出文件（用 scripts/db_sync.py 生成，体积大且含真实数据，不入库）
+dumps/
+
 # Chroma 持久化目录
 chroma_db/
 
