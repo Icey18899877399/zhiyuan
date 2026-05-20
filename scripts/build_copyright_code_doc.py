@@ -24,7 +24,7 @@ LINES_PER_PAGE = 60
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# 前部：后端核心 + 数据模型 + API + 服务层 + 调度器 + 爬虫基础
+# 前部：后端核心架构（M0 基础 + M1 动态调度 + M2 向量化）
 FRONT_FILES: list[str] = [
     "app/main.py",
     "app/config.py",
@@ -35,17 +35,28 @@ FRONT_FILES: list[str] = [
     "app/models/user.py",
     "app/models/user_unread.py",
     "app/models/chat_log.py",
+    "app/models/crawl_run.py",
     "app/schemas/__init__.py",
     "app/schemas/article.py",
     "app/schemas/chat.py",
     "app/api/__init__.py",
     "app/api/articles.py",
     "app/api/chat.py",
+    "app/api/stats.py",
     "app/services/__init__.py",
     "app/services/deepseek.py",
     "app/services/retrieval.py",
+    "app/services/embedding.py",
     "app/scheduler.py",
     "alembic/env.py",
+    "alembic/versions/bd3a595058f1_init_schema.py",
+    "alembic/versions/a1b2c3d4e5f6_crawl_runs.py",
+    "alembic/versions/b2c3d4e5f6a7_pgvector_embedding.py",
+]
+
+# 后部：爬虫层 + 脚本 + 前端 HTML/JS
+# styles.css 占 660+ 行视觉样式，不计入鉴别材料（视觉表达由操作手册截图体现）
+BACK_FILES: list[str] = [
     "app/crawler/__init__.py",
     "app/crawler/base.py",
     "app/crawler/classifier.py",
@@ -54,16 +65,12 @@ FRONT_FILES: list[str] = [
     "app/crawler/spiders/__init__.py",
     "app/crawler/spiders/cuc_jwc_notice.py",
     "app/crawler/spiders/cuc_cs_notice.py",
-]
-
-# 后部：剩余爬虫 + 脚本 + 前端
-BACK_FILES: list[str] = [
     "app/crawler/spiders/cuc_career.py",
     "app/crawler/spiders/wechat_mp.py",
     "scripts/__init__.py",
     "scripts/run_crawler.py",
     "scripts/run_api.py",
-    "scripts/test_db.py",
+    "scripts/backfill_embeddings.py",
     "frontend/index.html",
     "frontend/chat.js",
     "frontend/common.js",
@@ -73,7 +80,6 @@ BACK_FILES: list[str] = [
     "frontend/identity.js",
     "frontend/daily.html",
     "frontend/daily.js",
-    "frontend/styles.css",
 ]
 
 
