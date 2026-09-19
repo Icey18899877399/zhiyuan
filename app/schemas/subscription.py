@@ -46,6 +46,13 @@ class SubscriptionUpdate(BaseModel):
 
     topics: list[str] = Field(default_factory=list, max_length=10)
     keywords: list[str] = Field(default_factory=list, max_length=50)
+    enabled: bool | None = Field(
+        None,
+        description=(
+            "是否启用提醒。不传表示保持原状——"
+            "暂停之后只改关键词不会意外把提醒重新打开"
+        ),
+    )
 
     @field_validator("topics")
     @classmethod

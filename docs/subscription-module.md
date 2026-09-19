@@ -21,6 +21,20 @@
 - **关键词用直接子串匹配，不用检索模块的 bi-gram 分词**。`retrieval._tokenize` 是为长句检索设计的，会把「四六级」拆出「六级」，让《英语六级考试报名》这类通知误命中。用户填的是完整词，直接子串更准也更可预期。这条行为由 `tests/test_subscription_matching.py::test_keyword_not_split_into_bigrams` 锁定。
 - **关键词清洗**（`normalize_keywords`）：折叠空白、丢弃长度 < 2 的词、丢弃泛词黑名单里的词（「通知」「公告」「学院」等，这些词单独出现会淹没整个订阅流）、去重、上限 20 个。泛词黑名单是硬编码在 `app/services/subscription.py` 里的，可按实际数据再调。
 
+### 暂停提醒
+
+订阅配置带一个 `enabled` 开关，用户在页面上可以一键暂停 / 恢复。暂停的语义是**只停止产生新的未读**：
+
+| 暂停时 | 行为 |
+|---|---|
+| 新通知入库 | 不再匹配该用户（`_enabled_subscriptions` 按 `enabled` 过滤） |
+| 用户修改关注方向 | 不回填（守卫在 `backfill_feed` 里，任何入口都遵守） |
+| 已有的订阅流与未读记录 | **保留**，不做删除 |
+
+恢复时会正常回填，把暂停期间漏掉的内容补上。
+
+`PUT` 的请求体里 `enabled` 是可选的：**不传表示保持原状**，传了才改。这样「暂停之后只改关键词再保存」不会把提醒意外重新打开。
+
 ## 数据流
 
 ```
@@ -75,7 +89,7 @@
 | POST | `/api/users/ensure` | 按 openid 幂等建档，返回 `user_id` |
 | GET | `/api/subscriptions/topics` | 可选话题列表 + 各类通知数 |
 | GET | `/api/subscriptions/{user_id}` | 读订阅配置与未读总数 |
-| PUT | `/api/subscriptions/{user_id}` | 保存话题 + 关键词，自动回填历史 |
+| PUT | `/api/subscriptions/{user_id}` | 保存话题 + 关键词（+ 可选 `enabled`），自动回填历史 |
 | GET | `/api/subscriptions/{user_id}/feed` | 订阅流，支持 `page` / `page_size` / `unread_only` |
 | POST | `/api/subscriptions/{user_id}/read` | 标记已读，body 支持 `{"article_ids":[...]}` 或 `{"all": true}` |
 
@@ -97,7 +111,8 @@ uvicorn app.main:app --reload --port 8000
 2. 点保存 → 立刻看到回填出来的历史匹配（验证回填生效）
 3. 点某条「标记已读」→ 未读数减少，刷新后仍是已读（验证落库而非前端状态）
 4. 切到「每日数据」页 → 侧边栏「我的订阅」旁有未读徽标（验证跨页提醒）
-5. 切深色模式 → 样式正常
+5. 回订阅页点「暂停提醒」→ 状态变「已暂停」，改关键词再保存不会产生新未读；点「恢复提醒」→ 把暂停期间漏掉的补回来
+6. 切深色模式 → 样式正常
 
 ## 已知限制
 

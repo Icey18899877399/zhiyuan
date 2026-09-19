@@ -185,7 +185,7 @@ python -m scripts.db_sync restore dumps/zhiyuan_20260520_093015.sql
 | POST | `/api/users/ensure` | 按 openid 幂等建用户档（订阅模块的身份入口） |
 | GET | `/api/subscriptions/topics` | 可选订阅话题 + 各类通知数 |
 | GET | `/api/subscriptions/{uid}` | 读订阅配置与未读总数 |
-| PUT | `/api/subscriptions/{uid}` | 保存话题+关键词，自动回填历史匹配 |
+| PUT | `/api/subscriptions/{uid}` | 保存话题+关键词（+ 可选 `enabled` 暂停/恢复），自动回填历史匹配 |
 | GET | `/api/subscriptions/{uid}/feed` | 订阅流，支持 `unread_only` |
 | POST | `/api/subscriptions/{uid}/read` | 标记已读（指定文章或全部） |
 | GET | `/api/health` | 健康检查 |

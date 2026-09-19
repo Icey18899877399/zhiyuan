@@ -795,6 +795,25 @@ th {
   display: none;
 }
 
+/* 次级操作按钮（暂停提醒等），与主操作 .save 区分开 */
+.btn-ghost {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: 0.2s ease;
+}
+.btn-ghost:hover {
+  border-color: var(--accent);
+}
+.btn-ghost.paused {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+}
+
 .empty-hint {
   color: var(--muted);
   font-size: 0.9rem;

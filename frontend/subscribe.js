@@ -27,6 +27,7 @@ let keywords = [];
 let page = 1;
 let total = 0;
 let unreadTotal = 0;
+let enabled = true; // 提醒开关；暂停后仍保留已有的订阅流
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
@@ -48,12 +49,33 @@ function labelSource(src) {
 // ─────────────── 渲染 ───────────────
 
 function renderSummary() {
+  const hasSub = selectedTopics.length || keywords.length;
   summaryBox.innerHTML = `
     <div class="kv"><span>未读通知</span><strong>${unreadTotal}</strong></div>
     <div class="kv"><span>匹配到的通知</span><strong>${total}</strong></div>
     <div class="kv"><span>关注话题</span><strong>${selectedTopics.length}</strong></div>
     <div class="kv"><span>补充关键词</span><strong>${keywords.length}</strong></div>
+    <div class="kv"><span>提醒状态</span><strong>${
+      !hasSub ? "未设置" : enabled ? "已开启" : "已暂停"
+    }</strong></div>
   `;
+}
+
+function renderEnabledState() {
+  const btn = document.getElementById("toggleEnabled");
+  const hint = document.getElementById("enabledHint");
+  const hasSub = selectedTopics.length || keywords.length;
+
+  btn.textContent = enabled ? "暂停提醒" : "恢复提醒";
+  btn.classList.toggle("paused", !enabled);
+  // 没有订阅内容时暂停没有意义，禁用掉避免误操作
+  btn.disabled = !hasSub;
+
+  hint.textContent = !hasSub
+    ? ""
+    : enabled
+      ? "有新通知匹配到你的关注方向时，会在各页面侧边栏显示未读提示。"
+      : "提醒已暂停：不再匹配新通知，也不再回填。已有的订阅流和未读记录会保留。";
 }
 
 function renderTopicChips() {
@@ -150,10 +172,12 @@ async function loadConfig() {
   const data = await apiFetch(`/api/subscriptions/${userId}`);
   selectedTopics = data.config ? data.config.topics : [];
   keywords = data.config ? data.config.keywords : [];
+  enabled = data.config ? data.config.enabled : true;
   unreadTotal = data.unread_total || 0;
   renderTopicChips();
   renderKeywordChips();
   renderSummary();
+  renderEnabledState();
 }
 
 async function loadFeed() {
@@ -178,16 +202,21 @@ async function save() {
     const data = await apiFetch(`/api/subscriptions/${userId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topics: selectedTopics, keywords }),
+      // 带上 enabled，避免「暂停后改关键词再保存」把提醒偷偷打开
+      body: JSON.stringify({ topics: selectedTopics, keywords, enabled }),
     });
     selectedTopics = data.config.topics;
     keywords = data.config.keywords;
+    enabled = data.config.enabled;
     unreadTotal = data.unread_total;
     // 不说死「近 30 天」：窗口由后端 SUBSCRIPTION_BACKFILL_DAYS 决定
-    saveInfo.textContent = `已保存，回填历史匹配 ${data.backfilled} 条`;
+    saveInfo.textContent = enabled
+      ? `已保存，回填历史匹配 ${data.backfilled} 条`
+      : "已保存。提醒处于暂停状态，不回填新内容。";
     keywordInput.value = "";
     renderTopicChips();
     renderKeywordChips();
+    renderEnabledState();
     page = 1;
     await loadFeed();
   } catch (e) {
@@ -208,6 +237,8 @@ function addKeywordFromInput() {
   }
   keywordInput.value = "";
   renderKeywordChips();
+  renderSummary();
+  renderEnabledState();
 }
 
 async function markRead(articleIds, all) {
@@ -229,6 +260,8 @@ topicChips.addEventListener("click", (e) => {
   if (i >= 0) selectedTopics.splice(i, 1);
   else selectedTopics.push(t);
   renderTopicChips();
+  renderSummary();
+  renderEnabledState();
 });
 
 keywordChips.addEventListener("click", (e) => {
@@ -236,6 +269,8 @@ keywordChips.addEventListener("click", (e) => {
   if (!x) return;
   keywords = keywords.filter((k) => k !== x.dataset.kw);
   renderKeywordChips();
+  renderSummary();
+  renderEnabledState();
 });
 
 keywordInput.addEventListener("keydown", (e) => {
@@ -277,6 +312,34 @@ document.getElementById("prevPage").addEventListener("click", () => {
 document.getElementById("nextPage").addEventListener("click", () => {
   const maxPage = Math.max(1, Math.ceil(total / 20));
   if (page < maxPage) { page += 1; loadFeed(); }
+});
+
+// 暂停/恢复是独立动作，点了立刻生效，不需要再按保存
+document.getElementById("toggleEnabled").addEventListener("click", async () => {
+  const btn = document.getElementById("toggleEnabled");
+  const next = !enabled;
+  btn.disabled = true;
+  try {
+    const data = await apiFetch(`/api/subscriptions/${userId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      // 连当前的关注方向一起回传，避免这次请求把它们清空
+      body: JSON.stringify({ topics: selectedTopics, keywords, enabled: next }),
+    });
+    enabled = data.config.enabled;
+    selectedTopics = data.config.topics;
+    keywords = data.config.keywords;
+    unreadTotal = data.unread_total;
+    saveInfo.textContent = enabled ? "提醒已恢复" : "提醒已暂停";
+    renderTopicChips();
+    renderKeywordChips();
+    renderSummary();
+    await loadFeed();
+  } catch (e) {
+    saveInfo.textContent = `操作失败：${e.message}`;
+  } finally {
+    renderEnabledState();
+  }
 });
 
 // ─────────────── 启动 ───────────────

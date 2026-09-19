@@ -127,10 +127,16 @@ async def save_subscription(
     sub = await _get_subscription(db, user_id)
     if sub is None:
         sub = Subscription(user_id=user_id, topics=topics, keywords=keywords)
+        # 未传 enabled 时用模型默认值（True），传了才覆盖
+        if req.enabled is not None:
+            sub.enabled = req.enabled
         db.add(sub)
     else:
         sub.topics = topics
         sub.keywords = keywords
+        # 只在显式传了才改，避免「暂停后改关键词」把提醒偷偷打开
+        if req.enabled is not None:
+            sub.enabled = req.enabled
     await db.flush()
 
     backfilled = await backfill_feed(db, sub)

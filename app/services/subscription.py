@@ -171,7 +171,14 @@ async def backfill_feed(
 
     回填写 is_read=False（订阅产品惯例，RSS/公众号首次订阅也全是未读）。
     取舍：更"诚实"的做法是历史写已读，代价是首次进入未读数为 0、看不到未读态。
+
+    暂停中的订阅不回填：用户明确表示不想再收到提醒，就不该因为改了关键词
+    又冒出一批未读。守卫放在这里而不是调用方，任何入口都自动遵守。
     """
+    if not subscription.enabled:
+        logger.info(f"订阅已暂停 user={subscription.user_id}，跳过回填")
+        return 0
+
     days = settings.subscription_backfill_days if days is None else days
     limit = settings.subscription_backfill_limit if limit is None else limit
 
