@@ -642,7 +642,9 @@ th {
   margin: 0.6rem 0;
 }
 .summary-grid .kv {
-  background: var(--card);
+  /* 原为 var(--card)，但 --card 从未定义过（:root 里只有 --panel），
+     导致统计卡背景一直是透明的、深色模式下尤其明显。顺带修正。 */
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0.7rem 0.9rem;
@@ -664,4 +666,143 @@ th {
 }
 .logs .log-row:last-child {
   border-bottom: 0;
+}
+
+/* ---- 我的订阅页 ---- */
+/* 全部用 :root 的 CSS 变量，深色模式自动跟随，不需要额外的 .dark-chat 覆盖 */
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.4rem 0 0.2rem;
+}
+.chip {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: 0.2s ease;
+}
+.chip.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+}
+.chip.static {
+  cursor: default;
+  box-shadow: none;
+}
+.chip .chip-x {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+.chip .chip-x:hover {
+  color: var(--red);
+}
+
+.feed {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.6rem 0;
+}
+.feed-item {
+  border: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 0.7rem 0.9rem;
+}
+/* 未读用左侧色条 + 加粗标题表达，不依赖颜色单一维度 */
+.feed-item.unread {
+  border-left-color: var(--accent);
+}
+.feed-item.unread .feed-title {
+  font-weight: 700;
+}
+.feed-title {
+  font-size: 0.98rem;
+}
+.feed-title a {
+  color: inherit;
+  text-decoration: none;
+}
+.feed-title a:hover {
+  text-decoration: underline;
+}
+.feed-meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.feed-snippet {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin-top: 0.35rem;
+  line-height: 1.6;
+}
+.feed-actions {
+  margin-top: 0.4rem;
+}
+.feed-actions button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.feed-actions button:hover {
+  border-color: var(--accent);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--panel);
+  font-size: 0.72rem;
+}
+.badge.hit {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+/* 侧边栏未读徽标：用 float 而不是给 .menu a 加 flex，
+   这样对现有 4 个页面的布局零影响 */
+.nav-badge {
+  float: right;
+  background: var(--red);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  margin-top: 0.15rem;
+}
+.nav-badge[hidden] {
+  display: none;
+}
+
+.empty-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 0.8rem 0;
+}
+.pager {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 0.6rem;
 }
