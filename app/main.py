@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse
 from loguru import logger
 
 from app import scheduler as zhiyuan_scheduler
-from app.api import articles, chat, stats
+from app.api import articles, chat, stats, subscriptions, users
 from app.config import settings
 
 
@@ -57,6 +57,8 @@ app.add_middleware(
 app.include_router(articles.router)
 app.include_router(chat.router)
 app.include_router(stats.router)
+app.include_router(subscriptions.router)
+app.include_router(users.router)
 
 
 @app.get("/api/health", tags=["system"])
