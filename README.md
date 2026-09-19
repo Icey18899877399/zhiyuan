@@ -21,7 +21,7 @@
 | LLM | DeepSeek API（问答） |
 | Embedding | 智谱 BigModel `embedding-3` / OpenAI 兼容 / disabled 三档可切，无 key 自动降级到关键词检索 |
 | 爬虫 | requests + BeautifulSoup4 + lxml |
-| 前端 | 原生 HTML / JS / CSS，4 个页面（对话 / 知识库 / 身份 / 每日数据） |
+| 前端 | 原生 HTML / JS / CSS，5 个页面（对话 / 知识库 / 身份 / 我的订阅 / 每日数据） |
 
 ## 快速启动
 
@@ -97,17 +97,21 @@ zhiyuan/
 │   │   ├── article.py         #   含 pgvector embedding 列
 │   │   ├── crawl_run.py       #   每次跑批一条流水
 │   │   ├── chat_log.py        #   问答日志
+│   │   ├── subscription.py    #   订阅配置：话题 + 关键词
 │   │   ├── user.py
-│   │   └── user_unread.py
+│   │   └── user_unread.py     #   订阅匹配出的未读（M5）
 │   ├── schemas/               # Pydantic 请求/响应模型
 │   ├── api/
 │   │   ├── articles.py        # GET /api/articles + categories + sources + 详情
 │   │   ├── chat.py            # POST /api/chat（RAG 主入口）
-│   │   └── stats.py           # GET /api/stats/daily + crawl-runs
+│   │   ├── stats.py           # GET /api/stats/daily + crawl-runs
+│   │   ├── subscriptions.py   # 订阅配置 / 订阅流 / 已读（M5）
+│   │   └── users.py           # POST /api/users/ensure 匿名设备建档（M5）
 │   ├── services/
 │   │   ├── deepseek.py        # DeepSeek 异步客户端
 │   │   ├── embedding.py       # 多 provider embedding（智谱 / OpenAI / disabled）
-│   │   └── retrieval.py       # 向量检索 × 时间衰减；关键词 fallback
+│   │   ├── retrieval.py       # 向量检索 × 时间衰减；关键词 fallback
+│   │   └── subscription.py    # 订阅匹配 + 派发 + 回填（M5）
 │   └── crawler/
 │       ├── base.py            # BaseSpider：去重 + CrawlRun 流水 + embedding 钩子
 │       ├── classifier.py      # 五话题关键词规则
@@ -118,16 +122,17 @@ zhiyuan/
 │           ├── cuc_cs_notice.py     # 计网学院通知
 │           ├── cuc_career.py        # 就业网通知
 │           └── wechat_mp.py         # 学院公众号（需要 cookie + token）
-├── alembic/                   # 3 个迁移：init schema → crawl_runs → pgvector + embedding
-├── frontend/                  # 4 个页面 + 共享 styles.css
+├── alembic/                   # 4 个迁移：init schema → crawl_runs → pgvector + embedding → subscriptions
+├── frontend/                  # 5 个页面 + 共享 styles.css + common.js（深色模式 / 设备身份 / 未读徽标）
 ├── scripts/
 │   ├── run_crawler.py         # 手动触发任一 spider
 │   ├── run_api.py             # uvicorn 启动包装
 │   ├── backfill_embeddings.py # 对历史数据幂等回填向量
 │   ├── import_csv.py          # 从 articles.csv 灌种子数据
 │   └── test_db.py             # 数据库连通烟雾测试
-├── tests/                     # pytest 24 例（向量打分 / embedding 降级 / 日界）
+├── tests/                     # pytest 46 例（向量打分 / embedding 降级 / 日界 / 订阅匹配）
 ├── docs/
+│   ├── subscription-module.md # 订阅模块说明（匹配规则 / 数据流 / 接口 / 演示步骤 / 已知限制）
 │   └── copyright/             # 软著申请材料（业务理解 / 操作手册 / 申请表 / 60 页代码鉴别）
 ├── articles.csv               # 校园通知种子数据
 ├── docker-compose.yml         # pgvector/pgvector:pg16
@@ -177,6 +182,12 @@ python -m scripts.db_sync restore dumps/zhiyuan_20260520_093015.sql
 | GET | `/api/articles/{id}` | 单篇文章详情 |
 | GET | `/api/stats/daily?date=YYYY-MM-DD` | 当日爬虫巡查 + 新增 + 问答统计 |
 | GET | `/api/stats/crawl-runs?limit=20` | 最近 N 次跑批流水 |
+| POST | `/api/users/ensure` | 按 openid 幂等建用户档（订阅模块的身份入口） |
+| GET | `/api/subscriptions/topics` | 可选订阅话题 + 各类通知数 |
+| GET | `/api/subscriptions/{uid}` | 读订阅配置与未读总数 |
+| PUT | `/api/subscriptions/{uid}` | 保存话题+关键词，自动回填历史匹配 |
+| GET | `/api/subscriptions/{uid}/feed` | 订阅流，支持 `unread_only` |
+| POST | `/api/subscriptions/{uid}/read` | 标记已读（指定文章或全部） |
 | GET | `/api/health` | 健康检查 |
 
 ## 关键设计点
@@ -208,6 +219,15 @@ score = cosine_similarity(query_emb, article_emb) * exp(-lambda * age_days)
 
 每次跑批由 `BaseSpider.run()` 开/收一条 `crawl_runs` 流水，前端"每日数据"页直接读这张表。
 
+### 订阅匹配与未读派发
+
+新文章入库后立刻做一次订阅匹配，命中的用户各写一条 `user_unread`。匹配语义、身份方案、已知限制等完整说明见 [`docs/subscription-module.md`](docs/subscription-module.md)，这里只记两个容易踩的点：
+
+- **派发必须用 `begin_nested()`（SAVEPOINT）隔离**。asyncpg 里一条语句失败会把整个事务标记为 aborted，紧接着 `run()` 的 `commit()` 会把刚爬到的文章一起回滚——提醒功能故障反而吃掉核心入库。SAVEPOINT 让派发单独回滚，文章照常提交。
+- **未读插入用 `ON CONFLICT DO NOTHING`**。`user_unread` 的 `(user_id, article_id)` 复合主键天然幂等；用 `DO UPDATE` 的话用户每次改订阅，读过的通知会全部"复活"。
+
+入库有两条路径（`BaseSpider._save_one` 和 `scripts/import_csv.py`），两处都挂了派发——`import_csv` 不走 `_save_one`，漏掉它会导致批量灌库不产生任何订阅未读。
+
 ## 开发约定
 
 - 分支：`main` 受保护，所有改动走 PR 合入
@@ -222,7 +242,9 @@ score = cosine_similarity(query_emb, article_emb) * exp(-lambda * age_days)
 - [x] **M2** 动态 RAG：pgvector + embedding × 时间衰减 + 降级机制
 - [ ] **M3** 多智能体路由（LLM 意图分类 + 复合意图并行 + 6 个领域 prompt）
 - [ ] **M4** 微信公众号载体 + 5 秒异步响应架构
-- [ ] **M5** 用户画像精准检索 + 关键词订阅主动推送
+- [~] **M5** 用户画像精准检索 + 关键词订阅主动推送
+      —— 关键词订阅与更新提醒已完成（话题/关键词订阅、入库实时匹配、历史回填、
+      未读状态、跨页未读徽标、「我的订阅」页）；用户画像精准检索部分待做
 
 ## 软著申请
 
