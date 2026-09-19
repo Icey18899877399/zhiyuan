@@ -137,6 +137,12 @@ async def save_subscription(
     unread = await _unread_total(db, user_id)
     await db.commit()
 
+    # 显式 refresh 不能省：更新已有订阅时 updated_at 由 onupdate=func.now() 在
+    # 服务端生成，而 UPDATE 不像 INSERT 那样会 RETURNING 回读，SQLAlchemy 就把
+    # 该属性标记为待加载。下面构造响应时读它会触发一次隐式 IO，在 async 上下文
+    # 里直接抛 MissingGreenlet（表现为 500）。
+    await db.refresh(sub)
+
     return SubscriptionSaved(
         config=SubscriptionConfig.model_validate(sub),
         backfilled=backfilled,
