@@ -28,6 +28,11 @@ let page = 1;
 let total = 0;
 let unreadTotal = 0;
 let enabled = true; // 提醒开关；暂停后仍保留已有的订阅流
+// 配置是否已从后端取回。在它为 false 之前，selectedTopics / keywords 仍是初始空值，
+// 任何写回都会把用户已有的订阅清空 —— 打开页面后立刻点「保存订阅」或「暂停提醒」
+// 就会中招（读配置的请求越慢越容易撞上）。两个按钮在 HTML 里默认 disabled，
+// 这里再兜一道，任何入口都绕不过去。
+let configLoaded = false;
 
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
@@ -174,6 +179,9 @@ async function loadConfig() {
   keywords = data.config ? data.config.keywords : [];
   enabled = data.config ? data.config.enabled : true;
   unreadTotal = data.unread_total || 0;
+  // 到这里才有资格写回：放开「保存订阅」。开关由 renderEnabledState() 按有无内容决定
+  configLoaded = true;
+  document.getElementById("saveSub").disabled = false;
   renderTopicChips();
   renderKeywordChips();
   renderSummary();
@@ -197,6 +205,8 @@ async function loadFeed() {
 }
 
 async function save() {
+  // 配置没回来之前不写：此时提交等于把用户已有的订阅清空（按钮已置灰，这里再兜一道）
+  if (!configLoaded) return;
   saveInfo.textContent = "保存中…";
   try {
     const data = await apiFetch(`/api/subscriptions/${userId}`, {
@@ -316,6 +326,8 @@ document.getElementById("nextPage").addEventListener("click", () => {
 
 // 暂停/恢复是独立动作，点了立刻生效，不需要再按保存
 document.getElementById("toggleEnabled").addEventListener("click", async () => {
+  // 同 save()：配置未就绪时这一下会把空的关注方向写回去，订阅就没了
+  if (!configLoaded) return;
   const btn = document.getElementById("toggleEnabled");
   const next = !enabled;
   btn.disabled = true;

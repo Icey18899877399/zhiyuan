@@ -55,8 +55,10 @@
           <div class="chip-row" id="keywordChips"></div>
 
           <div class="toolbar" style="margin-top:1rem">
-            <button class="save" id="saveSub">保存订阅</button>
-            <button class="btn-ghost" id="toggleEnabled">暂停提醒</button>
+            <!-- 默认 disabled：配置取回来之前 selectedTopics / keywords 还是空值，
+                 此时点会把这些空值写回去，把已有订阅清空。见 subscribe.js 的 configLoaded -->
+            <button class="save" id="saveSub" disabled>保存订阅</button>
+            <button class="btn-ghost" id="toggleEnabled" disabled>暂停提醒</button>
             <span class="subtext" id="saveInfo"></span>
           </div>
           <div class="subtext" id="enabledHint"></div>
