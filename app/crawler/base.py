@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import AsyncSessionLocal
 from app.models import Article, CrawlRun
 from app.services import embedding as emb
+from app.services import subscription as subscription_svc
 
 # 拼一段紧凑文本作为 embedding 输入：标题 + 正文前 N 字
 # 标题权重通过重复一次实现（embedding 模型按 token 加权困难，重复是经典做法）
@@ -170,4 +171,18 @@ class BaseSpider(ABC):
         )
         session.add(article)
         await session.flush()
+
+        # 订阅派发：新通知入库后立刻匹配订阅，命中的用户各写一条未读。
+        # 用调用方 session，跟着外层事务一起提交。
+        #
+        # SAVEPOINT 不是可选项：这里抛错若不用 begin_nested() 隔离，
+        # asyncpg 会把整个事务标记为 aborted，紧接着 run() 里的 commit()
+        # 会把刚爬到的文章一起回滚掉 —— 提醒功能故障反向吃掉核心入库。
+        # 订阅是增值功能，任何情况下都不该影响入库。
+        try:
+            async with session.begin_nested():
+                await subscription_svc.fanout_new_article(session, article)
+        except Exception as e:  # noqa: BLE001
+            logger.exception(f"订阅派发失败 article_id={article.id}: {e}")
+
         return True

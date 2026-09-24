@@ -50,6 +50,15 @@ class Settings(BaseSettings):
     # 关闭后 uvicorn 启动不会触发自动爬取，便于本地开发
     scheduler_enabled: bool = True
 
+    # 订阅模块（M5 关键词订阅与更新提醒）
+    # 新建或重新启用订阅时，回填最近多少天的历史匹配
+    # 演示时想看到更多内容可以调到 90
+    subscription_backfill_days: int = 30
+    # 单次回填最多写入多少条未读，防止宽泛订阅在老库上一口气回填几千条
+    subscription_backfill_limit: int = 200
+    # 「我的订阅」列表默认每页条数
+    subscription_feed_page_size: int = 20
+
     # CORS：逗号分隔；"*" 表示允许全部
     cors_origins: str = "*"
 

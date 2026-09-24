@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我的订阅 - 计网-智源 Agent 平台</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // 防止深色模式闪烁的立即执行脚本
+    (function() {
+      const isDark = localStorage.getItem('darkMode') === 'true';
+      if (isDark) {
+        document.documentElement.classList.add('dark-chat');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <h1>计网-智源 Agent</h1>
+      </div>
+
+      <nav class="menu">
+        <a href="rag.html">RAG 知识库展示</a>
+        <a href="identity.html">身份设置</a>
+        <a href="subscribe.html" class="active">我的订阅<span class="nav-badge" data-unread-badge hidden></span></a>
+        <a href="daily.html">每日数据</a>
+        <a href="index.html">对话</a>
+      </nav>
+
+      <div class="color-strip"></div>
+    </aside>
+
+    <main class="main">
+      <h2 class="title"><span class="dot"></span>我的订阅
+        <button id="darkToggle" class="switch-dark" style="margin-left:auto">切换深色模式</button>
+      </h2>
+
+      <div class="stats">
+        <div id="subSummary" class="summary-grid"></div>
+
+        <div class="card">
+          <h3>选择关注话题</h3>
+          <div class="chip-row" id="topicChips"></div>
+
+          <h3 style="margin-top:1.2rem">补充关键词（可选）</h3>
+          <div class="subtext">填你特别关心的词，比如「奖学金」「选调生」「四六级」。多个词用逗号分隔，回车添加。</div>
+          <div class="row">
+            <label>关键词</label>
+            <input id="keywordInput" placeholder="如：奖学金, 选调生, 四六级" />
+          </div>
+          <div class="chip-row" id="keywordChips"></div>
+
+          <div class="toolbar" style="margin-top:1rem">
+            <!-- 默认 disabled：配置取回来之前 selectedTopics / keywords 还是空值，
+                 此时点会把这些空值写回去，把已有订阅清空。见 subscribe.js 的 configLoaded -->
+            <button class="save" id="saveSub" disabled>保存订阅</button>
+            <button class="btn-ghost" id="toggleEnabled" disabled>暂停提醒</button>
+            <span class="subtext" id="saveInfo"></span>
+          </div>
+          <div class="subtext" id="enabledHint"></div>
+        </div>
+
+        <h3 style="margin-top:1.5rem">最新通知</h3>
+        <div class="toolbar">
+          <button class="save" id="markAllRead">全部标记已读</button>
+          <label style="margin-left:0.8rem">
+            <input type="checkbox" id="unreadOnly" /> 只看未读
+          </label>
+        </div>
+        <div class="feed" id="feedList"></div>
+        <div class="pager">
+          <button class="save" id="prevPage">上一页</button>
+          <span class="subtext" id="pageInfo"></span>
+          <button class="save" id="nextPage">下一页</button>
+        </div>
+
+        <h3 style="margin-top:1.5rem">本机身份</h3>
+        <div class="logs" id="identityBox"></div>
+      </div>
+    </main>
+  </div>
+  <script src="common.js"></script>
+  <script src="subscribe.js"></script>
+</body>
+</html>

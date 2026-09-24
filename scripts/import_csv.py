@@ -35,6 +35,7 @@ from app.crawler.parsers.wechat_html import (
 )
 from app.database import AsyncSessionLocal
 from app.models import Article
+from app.services import subscription as subscription_svc
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -168,6 +169,17 @@ async def main() -> None:
                 content_hash=content_hash,
             )
             session.add(article)
+            await session.flush()  # 拿 article.id，订阅派发要用
+
+            # 订阅派发。CSV 导入是第二条入库路径，不走 BaseSpider._save_one，
+            # 所以这里要单独挂一次，否则批量灌库不会产生任何订阅未读。
+            # SAVEPOINT 隔离故障的理由同 app/crawler/base.py::_save_one。
+            try:
+                async with session.begin_nested():
+                    await subscription_svc.fanout_new_article(session, article)
+            except Exception as e:  # noqa: BLE001
+                logger.exception(f"订阅派发失败 article_id={article.id}: {e}")
+
             stats["inserted"] += 1
             logger.info(f"{prefix} ✅ [{category}] {title[:30]}")
 
