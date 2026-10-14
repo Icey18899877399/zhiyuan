@@ -13,7 +13,12 @@ import math
 import pytest
 
 from app.crawler.base import _build_embed_input
-from app.services.retrieval import _snippet, _tokenize, time_decay_score
+from app.services.retrieval import (
+    _search_by_keyword,
+    _snippet,
+    _tokenize,
+    time_decay_score,
+)
 
 
 class TestTimeDecayScore:
@@ -106,3 +111,38 @@ class TestBuildEmbedInput:
         # 标题部分约 4 + 4 + 4 字（含分隔），正文截到 1500 字
         # 总长度上限约 1500 + 标题 * 2 + 分隔
         assert len(out) < 1600
+
+
+class TestKeywordNoResults:
+    async def test_no_keyword_match_does_not_return_recent_unrelated_articles(self) -> None:
+        class Result:
+            def scalars(self):
+                return self
+
+            def all(self):
+                return []
+
+        class Session:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            async def execute(self, statement):  # noqa: ANN001
+                self.calls += 1
+                return Result()
+
+        session = Session()
+        rows = await _search_by_keyword(
+            session, ["不存在的词"], category=None, top_k=5
+        )
+
+        assert rows == []
+        assert session.calls == 1
+
+    async def test_empty_tokens_do_not_return_recent_unrelated_articles(self) -> None:
+        class Session:
+            async def execute(self, statement):  # noqa: ANN001
+                raise AssertionError("empty query should not scan recent articles")
+
+        rows = await _search_by_keyword(Session(), [], category=None, top_k=5)
+
+        assert rows == []

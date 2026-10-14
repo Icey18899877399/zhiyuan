@@ -167,11 +167,7 @@ async def _search_by_keyword(
         base = base.where(Article.category == category)
 
     if not tokens:
-        stmt = base.order_by(
-            Article.publish_time.desc().nullslast(),
-            Article.crawled_at.desc(),
-        ).limit(top_k)
-        return list((await db.execute(stmt)).scalars().all())
+        return []
 
     score_expr = sum(
         (
@@ -194,13 +190,6 @@ async def _search_by_keyword(
         .limit(top_k)
     )
     rows = list((await db.execute(stmt)).scalars().all())
-
-    if not rows:
-        stmt = base.order_by(
-            Article.publish_time.desc().nullslast(),
-            Article.crawled_at.desc(),
-        ).limit(top_k)
-        rows = list((await db.execute(stmt)).scalars().all())
 
     return rows
 

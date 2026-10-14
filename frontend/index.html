@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>计网-智源 Agent 平台</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20261012-route-mode" />
   <script>
     // 防止深色模式闪烁的立即执行脚本
     (function() {
@@ -43,7 +43,13 @@
               <div class="subtext">多 Agent 协同问答入口</div>
             </div>
           </div>
-          <button id="darkToggle" class="switch-dark">切换深色模式</button>
+          <div class="header-actions">
+            <div id="routeModeToggle" class="route-switch" role="group" aria-label="路由模式">
+              <button type="button" data-route-mode="manual" aria-pressed="true">手动路由</button>
+              <button type="button" data-route-mode="auto" aria-pressed="false">自动路由</button>
+            </div>
+            <button id="darkToggle" class="switch-dark">切换深色模式</button>
+          </div>
         </div>
 
         <div class="card">
@@ -65,7 +71,7 @@
     </main>
   </div>
 
-  <script src="common.js"></script>
-  <script src="chat.js"></script>
+  <script src="common.js?v=20261012-route-mode"></script>
+  <script src="chat.js?v=20261012-route-mode"></script>
 </body>
 </html>

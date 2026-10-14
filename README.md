@@ -171,7 +171,7 @@ python -m scripts.db_sync restore dumps/zhiyuan_20260520_093015.sql
 
 | 方法 | 路径 | 用途 |
 |---|---|---|
-| POST | `/api/chat` | 智能问答（按 agent 标签做向量检索 + LLM 回答） |
+| POST | `/api/chat` | 手动或自动 Agent 路由、分领域 RAG 检索与专家协作回答 |
 | GET | `/api/articles` | 文章列表，支持 `category` / `source` / `keyword` 筛选 |
 | GET | `/api/articles/categories` | 分类聚合（前端做筛选 tab） |
 | GET | `/api/articles/{id}` | 单篇文章详情 |
@@ -202,6 +202,18 @@ score = cosine_similarity(query_emb, article_emb) * exp(-lambda * age_days)
 
 降级后 `retrieval.search_articles()` 自动走 `_search_by_keyword()`（中文 bi-gram + ILIKE），对调用方完全透明。
 
+### 动态 RAG 度量与验收
+
+`scripts/evaluate_rag.py` 可基于人工标注的 JSONL 语料报告 Recall@K、Precision@K、MRR、分级 nDCG、无结果误召回、分类越界和检索延迟，并支持阈值门禁。评测数据和运行说明见 `evals/rag/README.md`；评测标签使用文章 `source_url`，不依赖数据库自增 ID。
+
+运行正式检索评测前，可先用 `scripts/audit_rag_dataset.py` 检查黄金集题量、五个领域与代表性题型覆盖、无答案样本及时间敏感问题的等级标注完整性。
+
+关键词模式默认不调用外部服务；`--mode configured` 会使用当前 embedding 配置，可能逐问题调用远端 API。数据库上的真实分数须待 PostgreSQL 可连接且 30–50 条人工核验问题集准备完成后生成。
+
+答案侧另有离线引用映射评测（`scripts/evaluate_rag_answers.py`）、人工 claim 支持度评测（`scripts/evaluate_rag_claims.py`）、双审核员一致性检查（`scripts/compare_rag_reviews.py`）和分歧裁定及最终评分（`scripts/prepare_rag_adjudication.py`、`scripts/evaluate_rag_adjudication.py`），读取保存的回答与逐项审核 JSONL，不调用模型或数据库。检索、引用结构、人工语义支持度和审核可靠性是不同验收维度；黄金集、真实回答样本与人工审核完成前，均不代表线上指标已达标。
+
+所有离线阶段完成后，可用 `scripts/validate_rag_acceptance.py` 校验关键词/向量检索双报告、样本覆盖、门槛配置及输入哈希是否来自同一验收集。该工具输出 `ready` 只表示离线指标包完整且通过配置门禁，不代表 PostgreSQL + 真实大模型端到端验收已完成。
+
 ### 增量入库
 
 `app/crawler/base.py` 的 `_save_one()` 用 `articles.source_url`（UNIQUE 约束）+ `articles.content_hash`（SHA-256，UNIQUE 约束）双层去重。同一篇文章被不同 spider 重复抓到也只入库一次。
@@ -215,12 +227,25 @@ score = cosine_similarity(query_emb, article_emb) * exp(-lambda * age_days)
 - 改 ORM 模型必须同步生成 `alembic revision --autogenerate -m "msg"` 并跑通本地迁移
 - 提交前跑一遍 `pytest && ruff check`
 
+### M3 Agent MVP 范围与验收状态
+
+当前代码已覆盖以下 Agent MVP 能力，并由离线测试验证：
+
+- 手动 Agent 路由，以及规则优先、低置信度时由大模型兜底的自动路由
+- 复合意图按领域分别检索、并行调用专家；单领域检索或专家失败时保留其他领域的有效结果
+- 五个领域专家和一个通用专家的独立提示词
+- 返回路由来源、置信度、实际回答方式、引用编号和降级提示
+- 没有可用检索资料时不调用专家模型；复合问题跳过缺少资料的领域
+- 校验回答中的引用编号是否能映射到返回的来源
+
+M3 最终功能验收已完成（2026-10-14）：PostgreSQL + 真实大模型端到端验证覆盖手动学业路由、自动学业/活动复合路由、来源引用对应关系和无检索上下文时不调用专家；数据库或模型不可用时的降级行为由自动化测试覆盖。黄金集评分、真实检索指标和人工 claim 审核属于可选质量度量，不作为当前 M3 完成门槛。
+
 ## 路线图
 
 - [x] **M0** 基础架构（FastAPI / pg / 三个爬虫 / 前端 4 页 / DeepSeek 对接）
 - [x] **M1** 动态爬取：APScheduler 30 分钟一次 + crawl_runs 流水 + daily 真数据
 - [x] **M2** 动态 RAG：pgvector + embedding × 时间衰减 + 降级机制
-- [ ] **M3** 多智能体路由（LLM 意图分类 + 复合意图并行 + 6 个领域 prompt）
+- [x] **M3** 多智能体路由（核心功能、离线测试及 PostgreSQL + 真实大模型功能冒烟验收已完成；黄金集与人工审核不作为完成门槛）
 - [ ] **M4** 微信公众号载体 + 5 秒异步响应架构
 - [ ] **M5** 用户画像精准检索 + 关键词订阅主动推送
 
