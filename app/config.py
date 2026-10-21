@@ -4,6 +4,7 @@
 """
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,9 +29,14 @@ class Settings(BaseSettings):
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
+    llm_timeout_seconds: float = Field(default=45.0, gt=0, le=600)
+    # 大模型不可达时使用本地检索结果回答，保证知识库仍可体验
+    llm_fallback_enabled: bool = True
 
     # RAG
     chat_top_k: int = 5
+    # 自动意图识别低于该置信度时，才调用 LLM 做分类回退
+    intent_confidence_threshold: float = Field(default=0.72, gt=0, le=1)
 
     # 向量检索（M2）
     # 1024 维向量；与 zhipuai embedding-3 / openai text-embedding-3-small (dim=1024) 对齐

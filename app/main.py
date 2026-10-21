@@ -18,10 +18,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from loguru import logger
+from sqlalchemy import text
 
 from app import scheduler as zhiyuan_scheduler
 from app.api import articles, chat, stats, subscriptions, users
 from app.config import settings
+from app.database import engine
 
 
 @asynccontextmanager
@@ -63,8 +65,27 @@ app.include_router(users.router)
 
 @app.get("/api/health", tags=["system"])
 async def health_check():
-    """健康检查 - 运维/前端确认服务在线"""
-    return {"status": "ok", "app": settings.app_name, "env": settings.app_env}
+    """健康检查，同时报告关键依赖状态，不暴露敏感配置。"""
+    database_status = "ok"
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+    except Exception as exc:  # noqa: BLE001
+        database_status = "unavailable"
+        logger.warning(f"健康检查：数据库不可用：{exc}")
+
+    llm_status = "configured" if settings.deepseek_api_key else "not_configured"
+    overall_status = "ok" if database_status == "ok" else "degraded"
+    return {
+        "status": overall_status,
+        "app": settings.app_name,
+        "env": settings.app_env,
+        "dependencies": {
+            "database": database_status,
+            "llm": llm_status,
+        },
+        "llm_fallback_enabled": settings.llm_fallback_enabled,
+    }
 
 
 # ─────────────────── 前端静态托管（单端口） ───────────────────
@@ -73,16 +94,20 @@ async def health_check():
 _frontend_path = Path(settings.frontend_dir).resolve()
 if _frontend_path.is_dir():
     logger.info(f"📦 挂载前端静态目录：{_frontend_path}")
+    _frontend_cache_headers = {"Cache-Control": "no-cache, must-revalidate"}
 
     # 根路径返回首页
     @app.get("/", include_in_schema=False)
     async def index():
-        return FileResponse(_frontend_path / "index.html")
+        return FileResponse(
+            _frontend_path / "index.html",
+            headers=_frontend_cache_headers,
+        )
 
     # 显式登记每个前端文件，避免 catch-all 吞掉 /docs /redoc /openapi.json
     def _make_static_handler(file_path: Path):
         async def _handler():
-            return FileResponse(file_path)
+            return FileResponse(file_path, headers=_frontend_cache_headers)
         return _handler
 
     for _f in sorted(_frontend_path.iterdir()):

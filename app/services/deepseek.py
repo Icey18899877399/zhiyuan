@@ -4,6 +4,7 @@ DeepSeek 与 OpenAI Chat Completions 协议兼容，因此直接复用 openai SD
 """
 from __future__ import annotations
 
+import asyncio
 from functools import lru_cache
 
 from openai import AsyncOpenAI
@@ -16,6 +17,7 @@ def get_client() -> AsyncOpenAI:
     return AsyncOpenAI(
         api_key=settings.deepseek_api_key,
         base_url=settings.deepseek_base_url,
+        timeout=settings.llm_timeout_seconds,
     )
 
 
@@ -28,13 +30,16 @@ async def chat_completion(
 ) -> str:
     """发起一次阻塞式对话，返回纯文本回答。"""
     client = get_client()
-    resp = await client.chat.completions.create(
-        model=settings.deepseek_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=temperature,
-        max_tokens=max_tokens,
+    resp = await asyncio.wait_for(
+        client.chat.completions.create(
+            model=settings.deepseek_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        ),
+        timeout=settings.llm_timeout_seconds,
     )
     return (resp.choices[0].message.content or "").strip()

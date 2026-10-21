@@ -1,5 +1,5 @@
 // 智源平台 - 对话页面脚本
-// 后端契约：POST /api/chat  body: {question, agent?} → {success, answer, intent, retrieved}
+// 后端契约：POST /api/chat {question, route_mode, agent?} → answer, intents, experts, confidence, warnings, retrieved
 
 const agents = [
   { key: "study", name: "📖学业agent", guide: "你想了解哪些课程安排或学业政策？", category: "学业" },
@@ -14,6 +14,7 @@ const chatInput = document.getElementById("chatInput");
 const chatBoard = document.getElementById("chatBoard");
 const routeLine = document.getElementById("routeLine");
 let currentAgent = agents[0];
+let routeMode = "manual";
 
 // 相对路径：FastAPI 单端口托管前端静态文件 + API，无需 BACKEND_URL
 const API_URL = "/api/chat";
@@ -40,15 +41,46 @@ function renderAgentTabs() {
   });
 }
 
+function syncAutoRoutedAgent(result) {
+  const category = Array.isArray(result.intents) ? result.intents[0] : null;
+  const routedAgent = agents.find((agent) => agent.category === category);
+  if (!routedAgent || routedAgent.key === currentAgent.key) {
+    return;
+  }
+
+  currentAgent = routedAgent;
+  renderAgentTabs();
+}
+
 renderAgentTabs();
 
-async function sendMessageToBackend(question) {
+async function loadHealthStatus() {
+  try {
+    const response = await fetch("/api/health");
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const health = await response.json();
+    if (health.dependencies && health.dependencies.database === "ok") {
+      routeLine.textContent = "服务状态：知识库在线，可进行完整检索问答";
+      return;
+    }
+    routeLine.textContent = "服务状态：知识库暂不可用，当前可用降级问答";
+  } catch (error) {
+    routeLine.textContent = "服务状态：后端暂不可达，请稍后重试";
+  }
+}
+
+loadHealthStatus();
+
+async function sendMessageToBackend(question, mode, agent) {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       question: question,
-      agent: currentAgent.category
+      agent: mode === "manual" ? agent.category : null,
+      route_mode: mode
     })
   });
   if (!response.ok) {
@@ -60,13 +92,98 @@ async function sendMessageToBackend(question) {
 
 function renderRetrieved(items) {
   if (!items || items.length === 0) {
-    return "";
+    return null;
   }
-  const lines = items.map((it) => {
-    const url = it.source_url || "#";
-    return `<li><a href="${url}" target="_blank" rel="noopener">${it.title}</a> <span class="subtext">[${it.source}]</span></li>`;
+
+  const details = document.createElement("details");
+  details.className = "rag-refs";
+  const summary = document.createElement("summary");
+  summary.textContent = `参考来源 (${items.length})`;
+  details.appendChild(summary);
+
+  const list = document.createElement("ul");
+  items.forEach((item) => {
+    const listItem = document.createElement("li");
+    if (Array.isArray(item.citations) && item.citations.length > 0) {
+      const citations = document.createElement("strong");
+      citations.textContent = `${item.citations.join(" ")} `;
+      listItem.appendChild(citations);
+    }
+    const titleText = item.title || "未命名来源";
+    const title = document.createElement("a");
+    title.textContent = titleText;
+    title.target = "_blank";
+    title.rel = "noopener noreferrer";
+
+    try {
+      const url = new URL(item.source_url, window.location.origin);
+      if (url.protocol === "http:" || url.protocol === "https:") {
+        title.href = url.href;
+      }
+    } catch {
+      // Invalid source URLs remain plain text.
+    }
+
+    if (title.hasAttribute("href")) {
+      listItem.appendChild(title);
+    } else {
+      listItem.appendChild(document.createTextNode(titleText));
+    }
+    const source = document.createElement("span");
+    source.className = "subtext";
+    source.textContent = item.source ? ` [${item.source}]` : "";
+    listItem.appendChild(source);
+    list.appendChild(listItem);
   });
-  return `<details class="rag-refs"><summary>参考来源 (${items.length})</summary><ul>${lines.join("")}</ul></details>`;
+  details.appendChild(list);
+  return details;
+}
+
+function renderAnswer(result, intentLabel) {
+  const message = document.createElement("div");
+  message.className = "msg bot";
+
+  const heading = document.createElement("strong");
+  heading.textContent = `[${intentLabel}]`;
+  message.appendChild(heading);
+
+  const metadata = document.createElement("span");
+  metadata.className = "subtext";
+  const expertLabel = result.experts && result.experts.length
+    ? ` · 专家：${result.experts.join("、")}`
+    : "";
+  const routeSourceLabels = {
+    manual: "手动选择",
+    rules: "关键词规则",
+    llm: "大模型识别"
+  };
+  const routeSourceLabel = routeSourceLabels[result.route_source] || "未知";
+  const answerModeLabels = {
+    llm: "大模型专家回答",
+    retrieval_fallback: "本地检索降级",
+    no_context: "无可靠资料，未调用模型"
+  };
+  const answerMode = answerModeLabels[result.answer_mode] || "未知回答方式";
+  metadata.textContent = `${expertLabel} · 路由：${routeSourceLabel} · 置信度 ${(Number(result.confidence || 0) * 100).toFixed(0)}% · ${answerMode}`;
+  message.appendChild(metadata);
+
+  (result.warnings || []).forEach((warningText) => {
+    const warning = document.createElement("div");
+    warning.className = "answer-warning";
+    warning.textContent = warningText;
+    message.appendChild(warning);
+  });
+
+  const answer = document.createElement("div");
+  answer.className = "answer-text";
+  answer.textContent = result.answer || "";
+  message.appendChild(answer);
+
+  const references = renderRetrieved(result.retrieved);
+  if (references) {
+    message.appendChild(references);
+  }
+  return message;
 }
 
 async function sendMessage() {
@@ -89,16 +206,20 @@ async function sendMessage() {
   chatBoard.appendChild(loadingMsg);
   chatBoard.scrollTop = chatBoard.scrollHeight;
 
+  const requestMode = routeMode;
+  const requestAgent = currentAgent;
+
   try {
-    const result = await sendMessageToBackend(text);
+    const result = await sendMessageToBackend(text, requestMode, requestAgent);
     chatBoard.removeChild(loadingMsg);
 
-    const botMsg = document.createElement("div");
-    botMsg.className = "msg bot";
+    if (requestMode === "auto" && routeMode === "auto") {
+      syncAutoRoutedAgent(result);
+    }
+
     const intentLabel = result.intent || currentAgent.name;
-    const refs = renderRetrieved(result.retrieved);
-    botMsg.innerHTML = `<strong>[${intentLabel}]</strong><br/>${result.answer || ""}${refs}`;
-    chatBoard.appendChild(botMsg);
+    chatBoard.appendChild(renderAnswer(result, intentLabel));
+    routeLine.textContent = `路由：${requestMode === "auto" ? "自动识别" : "手动选择"} · ${intentLabel}`;
     chatBoard.scrollTop = chatBoard.scrollHeight;
   } catch (error) {
     chatBoard.removeChild(loadingMsg);
@@ -109,6 +230,32 @@ async function sendMessage() {
     chatBoard.scrollTop = chatBoard.scrollHeight;
   }
 }
+
+const routeModeToggle = document.getElementById("routeModeToggle");
+function updateRouteModeToggle() {
+  routeModeToggle.querySelectorAll("[data-route-mode]").forEach((button) => {
+    const isActive = button.dataset.routeMode === routeMode;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+updateRouteModeToggle();
+routeModeToggle.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-route-mode]");
+  if (!button || button.dataset.routeMode === routeMode) {
+    return;
+  }
+
+  routeMode = button.dataset.routeMode;
+  updateRouteModeToggle();
+  chatInput.placeholder = routeMode === "auto"
+    ? "直接输入问题，系统自动分配专家"
+    : currentAgent.guide;
+  routeLine.textContent = routeMode === "auto"
+    ? "自动路由已开启，将按问题识别一个或多个专家"
+    : "手动路由已开启，使用当前 Agent 标签";
+});
 
 document.getElementById("sendBtn").addEventListener("click", sendMessage);
 chatInput.addEventListener("keydown", (event) => {
